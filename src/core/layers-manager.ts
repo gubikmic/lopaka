@@ -1,32 +1,33 @@
-import { loadFont } from '../draw/fonts';
-import { debounce, postParentMessage } from '../utils';
-import { TChange, TChangeType, THistoryEvent } from './history';
-import { AbstractImageLayer } from './layers/abstract-image.layer';
-import { AbstractLayer } from './layers/abstract.layer';
-import { CircleLayer } from './layers/circle.layer';
-import { EllipseLayer } from './layers/ellipse.layer';
-import { IconLayer } from './layers/icon.layer';
-import { LineLayer } from './layers/line.layer';
-import { PaintLayer, resolvePaintColorMode } from './layers/paint.layer';
-import { RectangleLayer } from './layers/rectangle.layer';
-import { TriangleLayer } from './layers/triangle.layer';
-import { TextLayer } from './layers/text.layer';
-import { Point } from './point';
-import { Rect } from './rect';
-import { Session } from './session';
-import { ButtonLayer } from '/src/core/layers/button.layer';
-import { SwitchLayer } from '/src/core/layers/switch.layer';
-import { PanelLayer } from '/src/core/layers/panel.layer';
-import { SliderLayer } from '/src/core/layers/slider.layer';
-import { CheckboxLayer } from '/src/core/layers/checkbox.layer';
-import { LVGLPlatform } from '/src/platforms/lvgl';
-import { TextAreaLayer } from '/src/core/layers/text-area.layer';
-import { PolygonLayer } from '/src/core/layers/polygon.layer';
+import {loadFont} from '../draw/fonts';
+import {debounce, postParentMessage} from '../utils';
+import {TChange, TChangeType, THistoryEvent} from './history';
+import {AbstractImageLayer} from './layers/abstract-image.layer';
+import {AbstractLayer} from './layers/abstract.layer';
+import {CircleLayer} from './layers/circle.layer';
+import {EllipseLayer} from './layers/ellipse.layer';
+import {IconLayer} from './layers/icon.layer';
+import {LineLayer} from './layers/line.layer';
+import {PaintLayer, resolvePaintColorMode} from './layers/paint.layer';
+import {RectangleLayer} from './layers/rectangle.layer';
+import {TriangleLayer} from './layers/triangle.layer';
+import {TextLayer} from './layers/text.layer';
+import {Point} from './point';
+import {Rect} from './rect';
+import {Session} from './session';
+import {ButtonLayer} from '/src/core/layers/button.layer';
+import {SwitchLayer} from '/src/core/layers/switch.layer';
+import {PanelLayer} from '/src/core/layers/panel.layer';
+import {SliderLayer} from '/src/core/layers/slider.layer';
+import {CheckboxLayer} from '/src/core/layers/checkbox.layer';
+import {LVGLPlatform} from '/src/platforms/lvgl';
+import {TextAreaLayer} from '/src/core/layers/text-area.layer';
+import {PolygonLayer} from '/src/core/layers/polygon.layer';
+import {GlyphLayer} from '/src/core/layers/glyph.layer';
 
 // Describes drag/drop reorder intent for either single layers or groups
 export type LayerReorderEntry =
-    | { type: 'layer'; layer: AbstractLayer }
-    | { type: 'group'; group: string; layers: AbstractLayer[] };
+    | {type: 'layer'; layer: AbstractLayer}
+    | {type: 'group'; group: string; layers: AbstractLayer[]};
 
 export class LayersManager {
     // groups: Map<string, AbstractLayer[]> = new Map();
@@ -36,7 +37,7 @@ export class LayersManager {
     groupsMap: Map<string, string[]> = new Map();
     layersMap: Map<string, AbstractLayer> = new Map();
 
-    LayerClassMap: { [key in ELayerType]: any } = {
+    LayerClassMap: {[key in ELayerType]: any} = {
         box: RectangleLayer,
         frame: RectangleLayer,
         rect: RectangleLayer,
@@ -55,6 +56,7 @@ export class LayersManager {
         checkbox: CheckboxLayer,
         textarea: TextAreaLayer,
         polygon: PolygonLayer,
+        glyph: GlyphLayer,
     };
 
     get layers() {
@@ -87,7 +89,7 @@ export class LayersManager {
         return list;
     }
 
-    constructor(private session: Session) { }
+    constructor(private session: Session) {}
 
     getLayer(uid: string): AbstractLayer {
         return this.layersMap.get(uid);
@@ -185,7 +187,7 @@ export class LayersManager {
     }
 
     add(layer: AbstractLayer, saveHistory: boolean = true) {
-        const { display, scale } = this.session.state;
+        const {display, scale} = this.session.state;
         layer.resize(display, scale);
         layer.index = layer.index ?? this.layersMap.size + 1;
         layer.name = layer.name ?? 'Layer ' + (this.layersMap.size + 1);
@@ -247,7 +249,7 @@ export class LayersManager {
                 members.length === selectedSet.size &&
                 members.every((member) => selectedSet.has(member.uid));
             const topIndex = members.reduce((max, member) => Math.max(max, member.index), -Infinity);
-            return { name, selected, members, fullSelection, topIndex };
+            return {name, selected, members, fullSelection, topIndex};
         });
 
         // Skip regrouping when an entire group is selected on its own
@@ -307,8 +309,8 @@ export class LayersManager {
         const nextName = this.ensureUniqueGroupName(normalized, currentName);
 
         // Capture history snapshots so undo/redo restores the rename
-        const before = members.map((layer) => ({ uid: layer.uid, group: currentName }));
-        const after = members.map((layer) => ({ uid: layer.uid, group: nextName }));
+        const before = members.map((layer) => ({uid: layer.uid, group: currentName}));
+        const after = members.map((layer) => ({uid: layer.uid, group: nextName}));
 
         // Apply the new name to each layer and refresh the registry entry
         members.forEach((layer) => {
@@ -324,7 +326,7 @@ export class LayersManager {
         const change = {
             type: 'group' as const,
             layer: null,
-            state: { before, after },
+            state: {before, after},
         };
         this.session.history.push(change);
         this.session.history.pushRedo(change);
@@ -432,7 +434,7 @@ export class LayersManager {
                 });
                 groupMap.set(entry.group, uids);
             } else {
-                const { layer } = entry;
+                const {layer} = entry;
                 if (!layer || !this.layersMap.has(layer.uid)) {
                     return;
                 }
@@ -603,14 +605,14 @@ export class LayersManager {
         return candidate;
     }
 
-    private applyGroupChange(state?: { uid: string; group: string | null }[]) {
+    private applyGroupChange(state?: {uid: string; group: string | null}[]) {
         // Ignore history entries that omit grouping payloads
         if (!Array.isArray(state)) {
             return;
         }
 
         // Restore each recorded layer membership from history
-        state.forEach(({ uid, group }) => {
+        state.forEach(({uid, group}) => {
             const layer = this.getLayer(uid);
             if (layer) {
                 layer.group = group ?? null;
@@ -663,8 +665,11 @@ export class LayersManager {
 
     validateLayerState(state: any) {
         if (state.t === 'paint' && !state.d) {
-            state.d = "";
-            this.session.state.warnings = [...this.session.state.warnings, 'Image layer data is missing. Skipping render.'];
+            state.d = '';
+            this.session.state.warnings = [
+                ...this.session.state.warnings,
+                'Image layer data is missing. Skipping render.',
+            ];
         }
     }
 

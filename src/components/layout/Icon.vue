@@ -1,8 +1,5 @@
-<script
-    lang="ts"
-    setup
->
-import { computed } from 'vue';
+<script lang="ts" setup>
+import {computed} from 'vue';
 import AbcIcon from '/src/assets/icons/abc.svg?component';
 import CircleIcon from '/src/assets/icons/Circle.svg?component';
 import DiscordIcon from '/src/assets/icons/discord.svg?component';
@@ -68,8 +65,9 @@ import {
     CheckIcon,
     PlusIcon,
     ArrowRightEndOnRectangleIcon,
+    HashtagIcon,
 } from '@heroicons/vue/24/outline';
-import { StarIcon as StarSolidIcon, XMarkIcon } from '@heroicons/vue/24/solid';
+import {StarIcon as StarSolidIcon, XMarkIcon} from '@heroicons/vue/24/solid';
 
 const props = defineProps<{
     type: string;
@@ -151,6 +149,7 @@ const icons = {
     plus: PlusIcon,
     textarea: TextAreaIcon,
     polygon: PolygonIcon,
+    glyph: HashtagIcon,
 };
 
 const classList = computed(() => ({

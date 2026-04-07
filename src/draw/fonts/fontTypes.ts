@@ -1,29 +1,24 @@
 import adafruitFont from './binary/adafruit-5x7.bin?url';
 import {FontFormat} from './font';
+import bdfFontNames from 'virtual:bdf-font-manifest';
 
-const bdfFiles = (import.meta as any).glob('./bdf/*.bdf');
 const gfxFiles = (import.meta as any).glob('./gfx/*.h');
 const ttfFiles = (import.meta as any).glob('./ttf/*.ttf');
 const gfxSourcesFiles = (import.meta as any).glob('./gfx/*.h', {as: 'raw'});
-const bdfSourcesFiles = (import.meta as any).glob('./bdf/*.bdf', {as: 'raw'});
 
-export const bdfFonts = Object.keys(bdfFiles).map((path: string) => {
-    const name = path.split('/').pop().replace('.bdf', '');
-    return {
-        name,
-        title: name,
-        file: bdfFiles[path],
-        format: FontFormat.FORMAT_BDF,
-    };
-});
+const BDF_BASE_URL = '/fonts/bdf';
 
-export const bdfSources = Object.keys(bdfSourcesFiles).map((path: string) => {
-    const name = path.split('/').pop().replace('.bdf', '');
-    return {
-        name,
-        file: bdfSourcesFiles[path],
-    };
-});
+export const bdfFonts: TPlatformFont[] = bdfFontNames.map((name: string) => ({
+    name,
+    title: name,
+    file: `${BDF_BASE_URL}/${name}.bdf`,
+    format: FontFormat.FORMAT_BDF,
+}));
+
+export const bdfSources = bdfFontNames.map((name: string) => ({
+    name,
+    file: `${BDF_BASE_URL}/${name}.bdf`,
+}));
 
 export const gfxFonts = Object.keys(gfxFiles).map((path: string) => {
     const name = path.split('/').pop().replace('.h', '');

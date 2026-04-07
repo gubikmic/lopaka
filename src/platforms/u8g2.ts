@@ -1,13 +1,32 @@
 import {getLayerProperties} from '../core/decorators/mapping';
 import {AbstractImageLayer} from '../core/layers/abstract-image.layer';
 import {AbstractLayer} from '../core/layers/abstract.layer';
+import {GlyphLayer} from '../core/layers/glyph.layer';
 import {TextLayer} from '../core/layers/text.layer';
+import {BDFFont} from '../draw/fonts/bdf.font';
 import {bdfFonts} from '../draw/fonts/fontTypes';
 import {imgDataToXBMP, toCppVariableName} from '../utils';
 import {U8g2Parser} from './parsers/u8g2.parser';
 import {Platform} from './platform';
 import cEspIdfTemplate from './templates/u8g2/c_esp_idf.pug';
 import defaultTemplate from './templates/u8g2/default.pug';
+
+/**
+ * Determine the correct U8g2 font suffix based on the glyph encoding range.
+ * - _tr: transparent, code points 32-127 (ASCII text)
+ * - _tn: transparent, code points 32-255 (extended Latin)
+ * - _tf: transparent, full encoding range (icon fonts, CJK, etc.)
+ */
+function getU8g2FontSuffix(font: BDFFont): string {
+    if (!font?.fontData?.glyphs) return '_tf';
+    let maxCode = 0;
+    for (const code of font.fontData.glyphs.keys()) {
+        if (code > maxCode) maxCode = code;
+    }
+    if (maxCode <= 127) return '_tr';
+    if (maxCode <= 255) return '_tn';
+    return '_tf';
+}
 
 export class U8g2Platform extends Platform {
     public static id = 'u8g2';
@@ -79,6 +98,11 @@ export class U8g2Platform extends Platform {
                         xbmpsNames.push(varName);
                         props.imageName = varName;
                     }
+                } else if (layer instanceof GlyphLayer) {
+                    const fontName = `u8g2_font_${layer.font.title}`;
+                    const suffix = layer.font instanceof BDFFont ? getU8g2FontSuffix(layer.font) : '_tf';
+                    props.fontName = `${fontName}${suffix}`;
+                    props.codePoint = layer.codePoint;
                 } else if (layer instanceof TextLayer) {
                     const fontName = `u8g2_font_${layer.font.title}`;
                     props.fontName = `${fontName}_tr`;

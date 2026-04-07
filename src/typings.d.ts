@@ -49,6 +49,11 @@ declare module '*.bdf' {
     export default content;
 }
 
+declare module 'virtual:bdf-font-manifest' {
+    const names: string[];
+    export default names;
+}
+
 declare type TFontSizes = {
     textCharHeight?: number;
     textCharWidth?: number;
@@ -105,7 +110,8 @@ declare type ELayerType =
     | 'slider'
     | 'checkbox'
     | 'textarea'
-    | 'polygon';
+    | 'polygon'
+    | 'glyph';
 
 declare function gtag(...args: any[]): void;
 

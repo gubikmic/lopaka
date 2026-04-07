@@ -1,29 +1,28 @@
-<script
-    lang="ts"
-    setup
->
-import { ComputedRef, UnwrapRef, computed, toRefs, ref, watch, nextTick } from 'vue';
-import { AbstractImageLayer } from '/src/core/layers/abstract-image.layer';
-import { AbstractLayer, TLayerModifier, TLayerModifiers, TModifierType } from '/src/core/layers/abstract.layer';
-import { useSession } from '/src/core/session';
-import { loadFont } from '/src/draw/fonts';
+<script lang="ts" setup>
+import {ComputedRef, UnwrapRef, computed, toRefs, ref, watch, nextTick} from 'vue';
+import {AbstractImageLayer} from '/src/core/layers/abstract-image.layer';
+import {AbstractLayer, TLayerModifier, TLayerModifiers, TModifierType} from '/src/core/layers/abstract.layer';
+import {useSession} from '/src/core/session';
+import {loadFont} from '/src/draw/fonts';
 import Button from '/src/components/layout/Button.vue';
 import Icon from '/src/components/layout/Icon.vue';
-import { PaintLayer } from '/src/core/layers/paint.layer';
+import {PaintLayer} from '/src/core/layers/paint.layer';
 import TextEditable from '/src/components/layout/TextEditable.vue';
 import SelectFont from '/src/components/fui/inspector/SelectFont.vue';
-import { TextLayer } from '/src/core/layers/text.layer';
-import { TextAreaLayer } from '/src/core/layers/text-area.layer';
+import {TextLayer} from '/src/core/layers/text.layer';
+import {TextAreaLayer} from '/src/core/layers/text-area.layer';
+import {GlyphLayer} from '/src/core/layers/glyph.layer';
 import ShortcutsPanel from '/src/components/fui/inspector/ShortcutsPanel.vue';
 import ImageOperations from '/src/components/fui/inspector/ImageOperations.vue';
 import AlignButtons from './AlignButtons.vue';
 import SwitchInputVariable from '/src/components/fui/inspector/SwitchInputVariable.vue';
-import { alignLayer, alignMultipleLayers } from './alignLayers';
-import { Project, ProjectScreen } from '/src/types';
-import { ButtonLayer } from '/src/core/layers/button.layer';
-import { CheckboxLayer } from '/src/core/layers/checkbox.layer';
-import { shouldShowInspectorParam } from './inspector-params';
-import { logEvent } from '/src/utils';
+import GlyphPicker from '/src/components/fui/inspector/GlyphPicker.vue';
+import {alignLayer, alignMultipleLayers} from './alignLayers';
+import {Project, ProjectScreen} from '/src/types';
+import {ButtonLayer} from '/src/core/layers/button.layer';
+import {CheckboxLayer} from '/src/core/layers/checkbox.layer';
+import {shouldShowInspectorParam} from './inspector-params';
+import {logEvent} from '/src/utils';
 
 const props = defineProps<{
     readonly?: boolean;
@@ -32,15 +31,15 @@ const props = defineProps<{
 }>();
 
 const session = useSession();
-const { platform, immidiateUpdates, selectionUpdates } = toRefs(session.state);
-const { textEditMode, activeTool } = toRefs(session.editor.state);
+const {platform, immidiateUpdates, selectionUpdates} = toRefs(session.state);
+const {textEditMode, activeTool} = toRefs(session.editor.state);
 let lastUpdate = 0;
 
 // Ref for text inputs or textareas in the inspector.
 const textInputRef = ref<(HTMLInputElement | HTMLTextAreaElement)[] | null>(null);
 
 const activeLayer: ComputedRef<UnwrapRef<AbstractLayer>> = computed(() => {
-    const { selected } = session.layersManager;
+    const {selected} = session.layersManager;
     return immidiateUpdates.value && selectionUpdates.value && selected.length == 1 ? selected[0] : null;
 });
 
@@ -113,11 +112,13 @@ const fontsUsed = computed(() => {
     const allLayers = props.project.screens
         .filter((screen) => screen.id !== props.screen?.id)
         .flatMap((screen) => screen.layers);
-    const projectFonts = allLayers.filter((layer) => layer?.t === 'string').map((layer) => layer?.f);
-    // Include text area fonts when gathering project-wide font usage.
+    const projectFonts = allLayers
+        .filter((layer) => layer?.t === 'string' || layer?.t === 'glyph')
+        .map((layer) => layer?.f);
+    // Include text area and glyph fonts when gathering project-wide font usage.
     const sessionFonts = session.layersManager.layers
-        .filter((layer) => layer instanceof TextLayer || layer instanceof TextAreaLayer)
-        .map((layer) => (layer as TextLayer | TextAreaLayer).font.name);
+        .filter((layer) => layer instanceof TextLayer || layer instanceof TextAreaLayer || layer instanceof GlyphLayer)
+        .map((layer) => (layer as TextLayer | TextAreaLayer | GlyphLayer).font.name);
     return [...projectFonts, ...sessionFonts];
 });
 
@@ -136,13 +137,13 @@ const shouldShowParam = (name: string, param: TLayerModifier) => {
 const colorGroups = computed(() => {
     const firstOfGroup = new Set<string>();
     const inGroup = new Set<string>();
-    const groups = new Map<string, { name: string; param: UnwrapRef<TLayerModifier> }[]>();
-    if (!params.value) return { firstOfGroup, inGroup, groups };
+    const groups = new Map<string, {name: string; param: UnwrapRef<TLayerModifier>}[]>();
+    if (!params.value) return {firstOfGroup, inGroup, groups};
 
-    const visible: { name: string; param: UnwrapRef<TLayerModifier> }[] = [];
+    const visible: {name: string; param: UnwrapRef<TLayerModifier>}[] = [];
     for (const [name, param] of Object.entries(params.value)) {
         if (shouldShowParam(name, param as UnwrapRef<TLayerModifier>)) {
-            visible.push({ name, param: param as UnwrapRef<TLayerModifier> });
+            visible.push({name, param: param as UnwrapRef<TLayerModifier>});
         }
     }
 
@@ -165,7 +166,7 @@ const colorGroups = computed(() => {
         i++;
     }
 
-    return { firstOfGroup, inGroup, groups };
+    return {firstOfGroup, inGroup, groups};
 });
 
 const isFirstInColorGroup = (name: string) => colorGroups.value.firstOfGroup.has(name as string);
@@ -307,12 +308,13 @@ const LABELS = {
     borderColor: 'Border',
     borderWidth: 'BW',
     checked: 'Checked',
+    codePoint: 'Code',
 };
 
 // Provide tooltip text for inspector fields that need additional context.
 const TOOLTIPS = {
     alphaChannel: 'Use alpha channel for RGB images',
-    overlay: 'Dim the layer and skip it from code generation'
+    overlay: 'Dim the layer and skip it from code generation',
 };
 
 // Watch for text edit mode trigger
@@ -433,8 +435,8 @@ watch(textEditMode, () => {
                                         v-for="color in palette"
                                         class="color-palette-box"
                                         @click="onChange($event, entry.param, color)"
-                                        :style="{ backgroundColor: color }"
-                                        :class="{ selected: color === entry.param.getValue() }"
+                                        :style="{backgroundColor: color}"
+                                        :class="{selected: color === entry.param.getValue()}"
                                     ></div>
                                 </div>
                                 <input
@@ -492,16 +494,18 @@ watch(textEditMode, () => {
                             'w-full flex-col': [TModifierType.color].includes(param.type),
                         }"
                     >
-                        <div v-if="
-                            ![TModifierType.boolean, TModifierType.string, TModifierType.color].includes(param.type)
-                        ">
+                        <div
+                            v-if="
+                                ![TModifierType.boolean, TModifierType.string, TModifierType.color].includes(param.type)
+                            "
+                        >
                             {{ LABELS[name] ?? name }}
                         </div>
                         <template v-if="param.type == TModifierType.number">
                             <input
                                 :disabled="readonly"
                                 class="text-gray-300 w-14 pr-1"
-                                :class="{ 'text-neutral-500': readonly || !param.setValue || !param.setValue }"
+                                :class="{'text-neutral-500': readonly || !param.setValue || !param.setValue}"
                                 type="number"
                                 :value="param.getValue()"
                                 @change="onChange($event, param)"
@@ -540,7 +544,7 @@ watch(textEditMode, () => {
                                 :disabled="readonly"
                                 placeholder="Enter text..."
                                 class="textarea textarea-bordered textarea-sm w-full leading-tight"
-                                :class="{ 'text-white': readonly }"
+                                :class="{'text-white': readonly}"
                                 :value="param.getValue()"
                                 @input="onChange($event, param)"
                                 :readonly="!param.setValue"
@@ -553,7 +557,7 @@ watch(textEditMode, () => {
                                 :disabled="readonly"
                                 placeholder="Enter text..."
                                 class="w-full pr-1"
-                                :class="{ 'text-white': readonly }"
+                                :class="{'text-white': readonly}"
                                 type="text"
                                 :value="param.getValue()"
                                 @input="onChange($event, param)"
@@ -577,8 +581,8 @@ watch(textEditMode, () => {
                                     v-for="color in palette"
                                     class="color-palette-box"
                                     @click="onChange($event, param, color)"
-                                    :style="{ backgroundColor: color }"
-                                    :class="{ selected: color === param.getValue() }"
+                                    :style="{backgroundColor: color}"
+                                    :class="{selected: color === param.getValue()}"
                                 ></div>
                             </div>
                             <input
@@ -623,6 +627,19 @@ watch(textEditMode, () => {
                 </div>
             </template>
         </div>
+        <GlyphPicker
+            v-if="activeLayer instanceof GlyphLayer && activeLayer.font"
+            :font="activeLayer.font"
+            :value="activeLayer.codePoint"
+            @select="
+                (cp) => {
+                    if (params.codePoint) {
+                        params.codePoint.setValue(cp);
+                        session.virtualScreen.redraw();
+                    }
+                }
+            "
+        />
         <ImageOperations
             v-if="!readonly"
             :actions="actions"
@@ -654,10 +671,7 @@ watch(textEditMode, () => {
         </Button>
     </div>
 </template>
-<style
-    lang="css"
-    scoped
->
+<style lang="css" scoped>
 .inspector-panel {
     display: flex;
     flex-direction: row;

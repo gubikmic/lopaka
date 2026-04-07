@@ -1,16 +1,13 @@
-<script
-    lang="ts"
-    setup
->
-import { computed, ref, toRefs, watch } from 'vue';
-import { useSession } from '../../core/session';
-import { buildLvglImageExport, logEvent, toCppVariableName } from '../../utils';
+<script lang="ts" setup>
+import {computed, ref, toRefs, watch} from 'vue';
+import {useSession, exportProject, importProject} from '../../core/session';
+import {buildLvglImageExport, logEvent, toCppVariableName} from '../../utils';
 import Icon from '/src/components/layout/Icon.vue';
-import { PaintLayer } from '/src/core/layers/paint.layer';
+import {PaintLayer} from '/src/core/layers/paint.layer';
 import imageTemplate from '/src/platforms/templates/lvgl/image.pug';
-import { TextLayer } from '/src/core/layers/text.layer';
-import { bdfSources, gfxSources } from '/src/draw/fonts/fontTypes';
-import { FontFormat } from '/src/draw/fonts/font';
+import {TextLayer} from '/src/core/layers/text.layer';
+import {bdfSources, gfxSources} from '/src/draw/fonts/fontTypes';
+import {FontFormat} from '/src/draw/fonts/font';
 
 const props = defineProps<{
     updates: number;
@@ -18,20 +15,20 @@ const props = defineProps<{
 
 const session = useSession();
 
-const { platform, customFonts } = toRefs(session.state);
+const {platform, customFonts} = toRefs(session.state);
 const templates = computed(() => platform.value && session.platforms[platform.value].getTemplates());
 const settings = computed(() => template.value && session.platforms[platform.value].getTemplateSettings());
 const fontsList = computed(() => {
-    const uniqueFonts = new Set<{ name: string; title?: string; file: Promise<string>; format?: FontFormat }>();
+    const uniqueFonts = new Set<{name: string; title?: string; file: Promise<string>; format?: FontFormat}>();
     const fonts: {
         name: string;
         file: any;
         format?: FontFormat;
     }[] = [
-            ...gfxSources,
-            ...bdfSources,
-            ...customFonts.value.filter((f) => f.format === FontFormat.FORMAT_GFX || f.format === FontFormat.FORMAT_BDF),
-        ];
+        ...gfxSources,
+        ...bdfSources,
+        ...customFonts.value.filter((f) => f.format === FontFormat.FORMAT_GFX || f.format === FontFormat.FORMAT_BDF),
+    ];
     session.layersManager.layers
         // Collect fonts referenced by text and text area layers.
         .filter((layer) => layer.getType() === 'string' || layer.getType() === 'textarea')
@@ -120,7 +117,7 @@ async function getFontFile(url: string, font) {
 function downloadFont(font) {
     if (typeof font.file === 'function') {
         font.file().then((f) => {
-            const blob = new Blob([f], { type: 'text/plain' });
+            const blob = new Blob([f], {type: 'text/plain'});
             const url = URL.createObjectURL(blob);
             getFontFile(url, font);
         });
@@ -135,11 +132,7 @@ function downloadImage(image: PaintLayer) {
     // Decide whether to include alpha based on the layer color mode.
     const includeAlpha = image.colorMode === 'rgb' ? image.alphaChannel : false;
     // Build the LVGL export payload with the requested alpha handling.
-    const exportData = buildLvglImageExport(
-        image.data,
-        session.getPlatformFeatures().screenBgColor,
-        includeAlpha
-    );
+    const exportData = buildLvglImageExport(image.data, session.getPlatformFeatures().screenBgColor, includeAlpha);
     const content = imageTemplate({
         imageName: name,
         imageData565: exportData.bytes.join(', '),
@@ -149,9 +142,41 @@ function downloadImage(image: PaintLayer) {
         imageColorFormat: exportData.colorFormat,
     });
     // Trigger the file download as a .c source file.
-    const blob = new Blob([content], { type: 'text/plain' });
+    const blob = new Blob([content], {type: 'text/plain'});
     const url = URL.createObjectURL(blob);
     triggerDownload(url, `${name}.c`);
+}
+
+const fileInput = ref<HTMLInputElement>(null);
+
+function doExportProject() {
+    const data = exportProject();
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    const platformName = platform.value ?? 'project';
+    triggerDownload(url, `${platformName}.lopaka.json`);
+    logEvent('export_project');
+}
+
+function doImportProject() {
+    fileInput.value?.click();
+}
+
+async function onImportFileChange(e: Event) {
+    const files = (e.target as HTMLInputElement).files;
+    if (!files || !files.length) return;
+    const file = files[0];
+    try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+        await importProject(data);
+        logEvent('import_project');
+    } catch (err) {
+        session.state.warnings = [`Failed to import project: ${err.message}`];
+    }
+    // Reset file input so the same file can be re-imported
+    if (fileInput.value) fileInput.value.value = '';
 }
 
 const LABELS = {
@@ -248,5 +273,38 @@ const LABELS = {
                 </div>
             </div>
         </template>
+        <div class="divider my-1"></div>
+        <div class="text-md mb-1">Project</div>
+        <div class="flex flex-col gap-2">
+            <div
+                class="flex flex-row gap-1 items-center cursor-pointer"
+                @click="doExportProject"
+            >
+                <Icon
+                    type="download"
+                    sm
+                    class="text-gray-400"
+                />
+                <div class="text-sm link text-gray-400">Export project</div>
+            </div>
+            <div
+                class="flex flex-row gap-1 items-center cursor-pointer"
+                @click="doImportProject"
+            >
+                <Icon
+                    type="upload"
+                    sm
+                    class="text-gray-400"
+                />
+                <div class="text-sm link text-gray-400">Import project</div>
+            </div>
+            <input
+                ref="fileInput"
+                type="file"
+                accept=".json"
+                class="hidden"
+                @change="onImportFileChange"
+            />
+        </div>
     </div>
 </template>

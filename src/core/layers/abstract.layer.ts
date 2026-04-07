@@ -1,11 +1,11 @@
-import { DrawContext } from '../../draw/draw-context';
-import { AbstractDrawingRenderer, PixelatedDrawingRenderer } from '../../draw/renderers';
-import { TPlatformFeatures } from '../../platforms/platform';
-import { generateUID } from '../../utils';
-import { getState, mapping, setState } from '../decorators/mapping';
-import { ChangeHistory, useHistory } from '../history';
-import { Point } from '../point';
-import { Rect } from '../rect';
+import {DrawContext} from '../../draw/draw-context';
+import {AbstractDrawingRenderer, PixelatedDrawingRenderer} from '../../draw/renderers';
+import {TPlatformFeatures} from '../../platforms/platform';
+import {generateUID} from '../../utils';
+import {getState, mapping, setState} from '../decorators/mapping';
+import {ChangeHistory, useHistory} from '../history';
+import {Point} from '../point';
+import {Rect} from '../rect';
 // TODO move type delarations outside of the class
 export enum EditMode {
     MOVING,
@@ -53,7 +53,8 @@ export type TModifierName =
     | 'backgroundColor'
     | 'checked'
     | 'borderColor'
-    | 'borderWidth';
+    | 'borderWidth'
+    | 'codePoint';
 
 export type TLayerModifier = {
     setValue?(value: any): void;
@@ -71,7 +72,7 @@ export type TLayerAction = {
     action: () => void;
 };
 
-export type TLayerModifiers = Partial<{ [key in TModifierName]: TLayerModifier }>;
+export type TLayerModifiers = Partial<{[key in TModifierName]: TLayerModifier}>;
 export type TLayerActions = TLayerAction[];
 
 export type TLayerEditPoint = {
@@ -129,7 +130,7 @@ export abstract class AbstractLayer {
     // hidden
     @mapping('h') public hidden: boolean = false;
     // variables
-    @mapping('v') public variables: { [key: string]: boolean } = {};
+    @mapping('v') public variables: {[key: string]: boolean} = {};
     // is layer already added to the session
     public added: boolean = false;
     // is layer resizable
@@ -147,7 +148,10 @@ export abstract class AbstractLayer {
         return this.editPoints;
     }
 
-    constructor(protected features?: TPlatformFeatures, renderer?: AbstractDrawingRenderer) {
+    constructor(
+        protected features?: TPlatformFeatures,
+        renderer?: AbstractDrawingRenderer
+    ) {
         // Default to the pixelated renderer so standalone layers can render without a session
         const resolvedRenderer = renderer ?? new PixelatedDrawingRenderer();
         resolvedRenderer.setDrawContext(this.dc);
@@ -155,7 +159,12 @@ export abstract class AbstractLayer {
     }
 
     // called when layer starts to edit
-    abstract startEdit(mode: EditMode, point?: Point, editPoint?: TLayerEditPoint, originalEvent?: MouseEvent | TouchEvent);
+    abstract startEdit(
+        mode: EditMode,
+        point?: Point,
+        editPoint?: TLayerEditPoint,
+        originalEvent?: MouseEvent | TouchEvent
+    );
     // called when layer is editing
     abstract edit(point: Point, originalEvent?: MouseEvent | TouchEvent);
     // called when layer stops to edit
@@ -183,7 +192,7 @@ export abstract class AbstractLayer {
      * @param scale
      */
     public resize(display: Point, scale: Point): void {
-        const { dc, buffer } = this;
+        const {dc, buffer} = this;
         buffer.width = display.x;
         buffer.height = display.y;
         dc.ctx.fillStyle = '#000';
@@ -203,7 +212,7 @@ export abstract class AbstractLayer {
     /**
      * On load state
      */
-    protected onLoadState() { }
+    protected onLoadState() {}
 
     /**
      * Clone this layer as new one

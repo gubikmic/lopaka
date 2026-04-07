@@ -1,39 +1,40 @@
-import { reactive, UnwrapRef } from 'vue';
-import { TPlatformFeatures } from 'src/platforms/platform';
-import { getFont, loadFont } from '../draw/fonts';
-import { VirtualScreen } from '../draw/virtual-screen';
-import { Editor } from '../editor/editor';
-import { applyColor, generateUID, imageDataToImage, imageToImageData, loadImageDataAsync, logEvent } from '../utils';
-import { ChangeHistory, TChange, THistoryEvent, useHistory } from './history';
-import { LayersManager } from './layers-manager';
-import { AbstractLayer } from './layers/abstract.layer';
-import { ButtonLayer } from './layers/button.layer';
-import { CircleLayer } from './layers/circle.layer';
-import { EllipseLayer } from './layers/ellipse.layer';
-import { IconLayer } from './layers/icon.layer';
-import { LineLayer } from './layers/line.layer';
-import { PaintLayer, resolvePaintColorMode } from './layers/paint.layer';
-import { RectangleLayer } from './layers/rectangle.layer';
-import { TriangleLayer } from './layers/triangle.layer';
-import { TextLayer } from './layers/text.layer';
-import { SwitchLayer } from './layers/switch.layer';
-import { PanelLayer } from './layers/panel.layer';
-import { SliderLayer } from './layers/slider.layer';
-import { CheckboxLayer } from './layers/checkbox.layer';
-import { TextAreaLayer } from './layers/text-area.layer';
-import { PolygonLayer } from './layers/polygon.layer';
+import {reactive, UnwrapRef} from 'vue';
+import {TPlatformFeatures} from 'src/platforms/platform';
+import {getFont, loadFont} from '../draw/fonts';
+import {VirtualScreen} from '../draw/virtual-screen';
+import {Editor} from '../editor/editor';
+import {applyColor, generateUID, imageDataToImage, imageToImageData, loadImageDataAsync, logEvent} from '../utils';
+import {ChangeHistory, TChange, THistoryEvent, useHistory} from './history';
+import {LayersManager} from './layers-manager';
+import {AbstractLayer} from './layers/abstract.layer';
+import {ButtonLayer} from './layers/button.layer';
+import {CircleLayer} from './layers/circle.layer';
+import {EllipseLayer} from './layers/ellipse.layer';
+import {IconLayer} from './layers/icon.layer';
+import {LineLayer} from './layers/line.layer';
+import {PaintLayer, resolvePaintColorMode} from './layers/paint.layer';
+import {RectangleLayer} from './layers/rectangle.layer';
+import {TriangleLayer} from './layers/triangle.layer';
+import {TextLayer} from './layers/text.layer';
+import {SwitchLayer} from './layers/switch.layer';
+import {PanelLayer} from './layers/panel.layer';
+import {SliderLayer} from './layers/slider.layer';
+import {CheckboxLayer} from './layers/checkbox.layer';
+import {TextAreaLayer} from './layers/text-area.layer';
+import {PolygonLayer} from './layers/polygon.layer';
+import {GlyphLayer} from './layers/glyph.layer';
 import platforms from './platforms';
-import { Point } from './point';
-import { paramsToState } from './decorators/mapping';
-import { iconsList } from '../icons/icons';
-import { Display } from '/src/core/displays';
-import { FontFormat } from '/src/draw/fonts/font';
-import { TFTeSPIPlatform } from '/src/platforms/tft-espi';
-import { Project, ProjectScreen } from '/src/types';
-import { LVGLPlatform } from '/src/platforms/lvgl';
-import { AbstractDrawingRenderer } from '../draw/renderers';
-import { SCALE_LIST } from '/src/const';
-import { syncProjectClipboard } from './project-clipboard';
+import {Point} from './point';
+import {paramsToState} from './decorators/mapping';
+import {iconsList} from '../icons/icons';
+import {Display} from '/src/core/displays';
+import {FontFormat} from '/src/draw/fonts/font';
+import {TFTeSPIPlatform} from '/src/platforms/tft-espi';
+import {Project, ProjectScreen} from '/src/types';
+import {LVGLPlatform} from '/src/platforms/lvgl';
+import {AbstractDrawingRenderer} from '../draw/renderers';
+import {SCALE_LIST} from '/src/const';
+import {syncProjectClipboard} from './project-clipboard';
 
 const sessions = new Map<string, UnwrapRef<Session>>();
 let currentSessionId = null;
@@ -62,7 +63,7 @@ export type TSessionState = {
 };
 
 export class Session {
-    LayerClassMap: { [key in ELayerType]: any } = {
+    LayerClassMap: {[key in ELayerType]: any} = {
         box: RectangleLayer,
         frame: RectangleLayer,
         rect: RectangleLayer,
@@ -82,6 +83,7 @@ export class Session {
         slider: SliderLayer,
         checkbox: CheckboxLayer,
         textarea: TextAreaLayer,
+        glyph: GlyphLayer,
     };
 
     id: string = generateUID();
@@ -313,7 +315,7 @@ export class Session {
     };
 
     generateCode = (): TSourceCode => {
-        const { platform, screenTitle } = this.state;
+        const {platform, screenTitle} = this.state;
         const code = this.platforms[platform].generateSourceCode(
             this.layersManager.sorted.filter(
                 (layer) => !layer.modifiers.overlay || !layer.modifiers.overlay.getValue()
@@ -329,8 +331,8 @@ export class Session {
     };
 
     importCode = async (code: string, append: boolean = false) => {
-        const { platform } = this.state;
-        const { states, warnings } = this.platforms[platform].importSourceCode(code);
+        const {platform} = this.state;
+        const {states, warnings} = this.platforms[platform].importSourceCode(code);
         const fonts = [...this.platforms[platform].getFonts(), ...this.state.customFonts];
         if (states.length === 0) {
             warnings.push(`Couldn't find any layer data.`);
@@ -445,6 +447,66 @@ export function saveLayers(screen_id, snapshot: SaveLayersSnapshot = {}) {
     return Promise.resolve();
 }
 
+const LOPAKA_VERSION = '0.45';
+const VALID_PLATFORMS = new Set([
+    'u8g2',
+    'adafruit_gfx',
+    'adafruit_gfx_mono',
+    'tft-espi',
+    'lvgl',
+    'flipper',
+    'arduino_gfx',
+    'esphome',
+    'micropython',
+    'gxepd2',
+    'inkplate',
+    'uint32',
+    'freestyle',
+]);
+
+export function exportProject(): object {
+    const session = useSession();
+    const layers = session.layersManager.layers.map((l) => l.state);
+    return {
+        lopaka_version: LOPAKA_VERSION,
+        platform: session.state.platform,
+        display: {x: session.state.display.x, y: session.state.display.y},
+        color_bg: session.platforms[session.state.platform]?.features?.screenBgColor,
+        layers,
+    };
+}
+
+export async function importProject(data: any): Promise<{warnings: string[]}> {
+    const warnings: string[] = [];
+
+    if (!data || typeof data !== 'object') {
+        throw new Error('Invalid project file: not a valid JSON object');
+    }
+    if (!data.lopaka_version) {
+        throw new Error('Invalid project file: missing lopaka_version');
+    }
+    if (!data.platform || !VALID_PLATFORMS.has(data.platform)) {
+        throw new Error(`Invalid project file: unknown platform "${data.platform}"`);
+    }
+    if (!data.display || typeof data.display.x !== 'number' || typeof data.display.y !== 'number') {
+        throw new Error('Invalid project file: missing or invalid display dimensions');
+    }
+    if (!Array.isArray(data.layers)) {
+        throw new Error('Invalid project file: layers must be an array');
+    }
+
+    const session = useSession();
+
+    if (data.color_bg) {
+        session.platforms[data.platform].features.screenBgColor = data.color_bg;
+    }
+    await session.preparePlatform(data.platform, false, data.layers);
+    session.setDisplay(new Point(data.display.x, data.display.y));
+    session.virtualScreen.redraw();
+
+    return {warnings};
+}
+
 export async function loadProject(project: Project, screen: ProjectScreen): Promise<ProjectScreen> {
     // TODO loading project move to session and provider
     const session = useSession();
@@ -466,7 +528,7 @@ export async function loadAssetsFonts() {
 
 export async function addCustomFont(asset) {
     const session = useSession();
-    const { customFonts } = session.state;
+    const {customFonts} = session.state;
 
     const fileName = asset.filename.substring(0, asset.filename.lastIndexOf('.')) || asset.filename;
     const fileExtension = asset.filename.substring(asset.filename.lastIndexOf('.')).toLowerCase();
@@ -503,7 +565,7 @@ export async function addCustomImage(
     colorMode: string = 'monochrome'
 ) {
     const session = useSession();
-    const { customImages } = session.state;
+    const {customImages} = session.state;
 
     // check for duplicate names
     const nameRegex = new RegExp(`^${name}(_\\d+)?$`);
@@ -521,7 +583,7 @@ export async function addCustomImage(
         const coloredImageData = applyColor(imageData, '#FFFFFF');
         image = await imageDataToImage(coloredImageData);
     }
-    customImages.push({ name, width, height, image, isCustom: true, id: asset_id, colorMode });
+    customImages.push({name, width, height, image, isCustom: true, id: asset_id, colorMode});
 }
 
 export function useSession(id?: string) {

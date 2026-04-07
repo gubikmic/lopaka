@@ -66,6 +66,13 @@ each layer in layers
             | @!{layer.uid};!{pad}u8g2.!{func}(@x:!{layer.x}, @y:!{layer.y}, @rx:!{layer.rx}, @ry:!{layer.ry});
         when 'triangle'
             | @!{layer.uid};!{pad}u8g2.drawTriangle(@x1:!{layer.x1}, @y1:!{layer.y1}, @x2:!{layer.x2}, @y2:!{layer.y2}, @x3:!{layer.x3}, @y3:!{layer.y3});
+        when 'glyph'
+            if layer.fontName != font
+                - font = layer.fontName
+                | !{pad}u8g2.setFont(!{layer.fontName});
+                |
+            - var cpContent = layer.isCodePointVariable ? layer.codePoint : `0x${Number(layer.codePoint).toString(16).toUpperCase()}`;
+            | @!{layer.uid};!{pad}u8g2.drawGlyph(@x:!{layer.x}, @y:!{layer.y}, @codePoint:!{cpContent});
         when 'string'
             if layer.font != font
                 - font = layer.font

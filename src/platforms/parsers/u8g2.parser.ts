@@ -18,7 +18,10 @@ export class U8g2Parser extends AbstractParser {
                 case 'setFont':
                     {
                         const [font] = this.getArgs(call.args, defines, variables);
-                        currentFont = font.replace('_tr', '').replace('u8g2_font_', '').replace('u8g_font_', '');
+                        currentFont = font
+                            .replace(/_t[rnf]$/, '')
+                            .replace('u8g2_font_', '')
+                            .replace('u8g_font_', '');
                     }
                     break;
                 case 'u8g2_DrawXBMP':
@@ -73,6 +76,22 @@ export class U8g2Parser extends AbstractParser {
                         states.push({
                             type: 'dot',
                             position: new Point(parseInt(x), parseInt(y)),
+                        });
+                    }
+                    break;
+                case 'u8g2_DrawGlyph':
+                case 'drawGlyph':
+                    {
+                        const [x, y, codePoint] = this.getArgs(call.args, defines, variables);
+                        const cp =
+                            codePoint.startsWith('0x') || codePoint.startsWith('0X')
+                                ? parseInt(codePoint, 16)
+                                : parseInt(codePoint);
+                        states.push({
+                            type: 'glyph',
+                            codePoint: isNaN(cp) ? 65 : cp,
+                            position: new Point(parseInt(x), parseInt(y)),
+                            font: currentFont,
                         });
                     }
                     break;

@@ -1,38 +1,39 @@
-import { UnwrapRef, reactive } from 'vue';
-import { Keys } from '../core/keys.enum';
-import { AbstractLayer } from '../core/layers/abstract.layer';
-import { Point } from '../core/point';
-import { Session } from '../core/session';
-import { Font } from '../draw/fonts/font';
-import { AbstractEditorPlugin } from './plugins/abstract-editor.plugin';
-import { AddPlugin } from './plugins/add.plugin';
-import { CopyPlugin } from './plugins/copy.plugin';
-import { ClonePlugin } from './plugins/clone.plugin';
-import { DeletePlugin } from './plugins/delete.plugin';
-import { ImageDropPlugin } from './plugins/image-drop.plugin';
-import { MovePlugin } from './plugins/move.plugin';
-import { PaintPlugin } from './plugins/paint.plugin';
-import { ResizePlugin } from './plugins/resize.plugin';
-import { SelectPlugin } from './plugins/select.plugin';
-import { AbstractTool } from './tools/abstract.tool';
-import { CircleTool } from './tools/circle.tool';
-import { EllipseTool } from './tools/ellipse.tool';
-import { LineTool } from './tools/line.tool';
-import { PaintTool } from './tools/paint.tool';
-import { ImageTool } from './tools/image.tool';
-import { RectTool } from './tools/rect.tool';
-import { TriangleTool } from './tools/triangle.tool';
-import { TextTool } from './tools/text.tool';
-import { TextAreaTool } from './tools/text-area.tool';
-import { ButtonTool } from './tools/button.tool';
-import { PanelTool } from './tools/panel.tool';
-import { SwitchTool } from './tools/switch.tool';
-import { SliderTool } from './tools/slider.tool';
-import { CheckboxTool } from './tools/checkbox.tool';
-import { PolygonTool } from './tools/polygon.tool';
-import { HistoryPlugin } from './plugins/history.plugin';
-import { GroupPlugin } from './plugins/group.plugin';
-import { ZoomPlugin } from './plugins/zoom.plugin';
+import {UnwrapRef, reactive} from 'vue';
+import {Keys} from '../core/keys.enum';
+import {AbstractLayer} from '../core/layers/abstract.layer';
+import {Point} from '../core/point';
+import {Session} from '../core/session';
+import {Font} from '../draw/fonts/font';
+import {AbstractEditorPlugin} from './plugins/abstract-editor.plugin';
+import {AddPlugin} from './plugins/add.plugin';
+import {CopyPlugin} from './plugins/copy.plugin';
+import {ClonePlugin} from './plugins/clone.plugin';
+import {DeletePlugin} from './plugins/delete.plugin';
+import {ImageDropPlugin} from './plugins/image-drop.plugin';
+import {MovePlugin} from './plugins/move.plugin';
+import {PaintPlugin} from './plugins/paint.plugin';
+import {ResizePlugin} from './plugins/resize.plugin';
+import {SelectPlugin} from './plugins/select.plugin';
+import {AbstractTool} from './tools/abstract.tool';
+import {CircleTool} from './tools/circle.tool';
+import {EllipseTool} from './tools/ellipse.tool';
+import {LineTool} from './tools/line.tool';
+import {PaintTool} from './tools/paint.tool';
+import {ImageTool} from './tools/image.tool';
+import {RectTool} from './tools/rect.tool';
+import {TriangleTool} from './tools/triangle.tool';
+import {TextTool} from './tools/text.tool';
+import {TextAreaTool} from './tools/text-area.tool';
+import {ButtonTool} from './tools/button.tool';
+import {PanelTool} from './tools/panel.tool';
+import {SwitchTool} from './tools/switch.tool';
+import {SliderTool} from './tools/slider.tool';
+import {CheckboxTool} from './tools/checkbox.tool';
+import {PolygonTool} from './tools/polygon.tool';
+import {GlyphTool} from './tools/glyph.tool';
+import {HistoryPlugin} from './plugins/history.plugin';
+import {GroupPlugin} from './plugins/group.plugin';
+import {ZoomPlugin} from './plugins/zoom.plugin';
 
 type TEditorState = {
     activeLayer: AbstractLayer;
@@ -60,9 +61,9 @@ export class Editor {
         shiftPressed: false,
     });
 
-    constructor(public session: Session) { }
+    constructor(public session: Session) {}
 
-    tools: { [key: string]: AbstractTool } = {
+    tools: {[key: string]: AbstractTool} = {
         image: new ImageTool(this),
         paint: new PaintTool(this),
         string: new TextTool(this),
@@ -78,9 +79,10 @@ export class Editor {
         slider: new SliderTool(this),
         checkbox: new CheckboxTool(this),
         polygon: new PolygonTool(this),
+        glyph: new GlyphTool(this),
     };
 
-    getSupportedTools(platform: string): { [key: string]: AbstractTool } {
+    getSupportedTools(platform: string): {[key: string]: AbstractTool} {
         return Object.values(this.tools)
             .filter((tool) => tool.isSupported(platform))
             .reduce((acc, tool) => {
@@ -107,7 +109,7 @@ export class Editor {
             new ZoomPlugin(this.session, this.container),
         ];
         if (this.scrollContainer) {
-            this.scrollContainer.addEventListener('wheel', this.onWheel, { passive: false });
+            this.scrollContainer.addEventListener('wheel', this.onWheel, {passive: false});
         }
     }
 
@@ -143,8 +145,8 @@ export class Editor {
     }
 
     handleEvent = (event: MouseEvent | KeyboardEvent | DragEvent | TouchEvent) => {
-        const { virtualScreen, state } = this.session;
-        const { scale } = state;
+        const {virtualScreen, state} = this.session;
+        const {scale} = state;
         if (event instanceof KeyboardEvent) {
             // Keep modifier state in sync for draw plugins that depend on Shift mode.
             const nextShiftPressed = event.code === Keys.Shift ? event.type === 'keydown' : event.shiftKey;
@@ -276,5 +278,5 @@ export class Editor {
 
     private onWheel = (event: WheelEvent): void => {
         this.plugins.forEach((plugin) => plugin.onWheel(event));
-    }
+    };
 }

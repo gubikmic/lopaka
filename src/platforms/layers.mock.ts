@@ -7,6 +7,7 @@ import {PaintLayer} from '../core/layers/paint.layer';
 import {RectangleLayer} from '../core/layers/rectangle.layer';
 import {TextLayer} from '../core/layers/text.layer';
 import {PolygonLayer} from '../core/layers/polygon.layer';
+import {GlyphLayer} from '../core/layers/glyph.layer';
 import {getFont} from '../draw/fonts';
 import {TPlatformFeatures} from './platform';
 import {AbstractDrawingRenderer} from '../draw/renderers';
@@ -52,6 +53,7 @@ const layerClassMap = {
     paint: PaintLayer,
     ellipse: EllipseLayer,
     polygon: PolygonLayer,
+    glyph: GlyphLayer,
 };
 
 const defaultFeatures: TPlatformFeatures = {
@@ -232,13 +234,25 @@ export const layersMock: AbstractLayer[] = [
         ],
         f: false,
     },
+    {
+        n: 'glyph_def456glyph',
+        t: 'glyph',
+        c: '#FFFFFF',
+        i: 18,
+        p: [50, 30],
+        u: 'def456glyph',
+        d: 72,
+        f: 'profont22',
+    },
 ].map((l) => {
     const type: ELayerType = l.t as any;
     const mockRenderer = createMockRenderer();
     const layer =
         type === 'string'
             ? new TextLayer(defaultFeatures, mockRenderer, getFont((l as any).f))
-            : new layerClassMap[type](defaultFeatures, mockRenderer);
+            : type === 'glyph'
+              ? new GlyphLayer(defaultFeatures, mockRenderer, getFont((l as any).f))
+              : new layerClassMap[type](defaultFeatures, mockRenderer);
     layer.state = l;
     return layer;
 });
