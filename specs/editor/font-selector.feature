@@ -11,6 +11,14 @@ Feature: Font selector with search
     And the search input is focused
     And all available fonts for the current platform are listed below
 
+  Scenario: U8g2 projects expose bundled Logisoso fonts
+    Given a text layer is selected in the inspector for the u8g2 platform
+    When the user clicks the font selector button
+    Then the available fonts include "logisoso16"
+    And the available fonts include "logisoso20"
+    And the available fonts include "logisoso24"
+    And the available fonts include "logisoso32"
+
   Scenario: Filtering fonts by search query
     Given the font selector dropdown is open
     When the user types "helv" in the search input
