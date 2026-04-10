@@ -386,6 +386,10 @@ export class Session {
         if (local_color_bg) {
             this.platforms[this.state.platform].features.screenBgColor = local_color_bg;
         }
+        const local_invert = localStorage.getItem(`lopaka_${this.state.platform}_invert_screen`);
+        if (local_invert === 'true') {
+            this.platforms[this.state.platform].features.invertScreen = true;
+        }
         await this.preparePlatform(platformLocal ?? TFTeSPIPlatform.id);
         this.setDisplayCustom(localStorage.getItem('lopaka_display_custom') === 'true');
         const displayStored = localStorage.getItem('lopaka_display');

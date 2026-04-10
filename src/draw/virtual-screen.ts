@@ -188,8 +188,12 @@ export class VirtualScreen {
             this.ctx.globalCompositeOperation = 'source-over';
         });
         // create data without alpha channel
-        const data = this.ctx.getImageData(0, 0, this.screen.width, this.screen.height).data.map((v, i) => {
-            // if (i % 4 === 3) return v >= 255 / 2 ? 255 : 0;
+        const rawData = this.ctx.getImageData(0, 0, this.screen.width, this.screen.height);
+        const data = rawData.data.map((v, i) => {
+            // invert RGB channels but keep alpha
+            if (this.session.getPlatformFeatures()?.invertScreen && i % 4 !== 3) {
+                return 255 - v;
+            }
             return v;
         });
         this.canvasContext.putImageData(

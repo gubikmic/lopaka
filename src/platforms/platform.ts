@@ -36,6 +36,7 @@ export type TPlatformFeatures = {
     isHidden?: boolean;
     clearScreenMethod?: string;
     hasAlphaChannel?: boolean;
+    invertScreen?: boolean;
 };
 
 /**

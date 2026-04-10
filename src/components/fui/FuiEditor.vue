@@ -263,7 +263,7 @@ function onMouseClick() {
                 <FuiSelectPlatform></FuiSelectPlatform>
                 <FuiSelectDisplay></FuiSelectDisplay>
                 <FuiSelectColors
-                    v-if="platform !== U8g2Platform.id && platform !== FlipperPlatform.id"
+                    v-if="platform !== FlipperPlatform.id"
                     :key="platform"
                 ></FuiSelectColors>
             </div>
